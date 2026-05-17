@@ -360,7 +360,7 @@ function calcTodo(){
   RES=ORDER.map(nom=>{
     const s=XLS.find(x=>x.nombre===nom)||{vta:0,rec:0};
     const vR=s.vta,rB=s.rec,rM=mv[nom]||0,rR=rB+rM;
-    const iM=MAIL.includes(nom),hR=RECOK.includes(nom);
+    const iM=MAIL.includes(nom),hR=RECOK.includes(nom)||MAIL.includes(nom);
     const ok=Object.keys(OBJ?.sucursales||{}).find(k=>mn(k)===nom);
     const ov=ok?OBJ.sucursales[ok]:{vta:0,rec:0};
     const oV=ov.vta,oR=hR?ov.rec:0;
@@ -383,7 +383,7 @@ function buildStrip(){
   const pV=OBJ?.pVta||0,pR=OBJ?.pRec||0;
   const rV=pV>0&&DR>0?((pV-tV)/DR)/(pV/DH):null,rR=pR>0&&DR>0?((pR-tR)/DR)/(pR/DH):null;
   const rv=RES.filter(r=>r.raV>1.2).length,rr=RES.filter(r=>r.raR!==null&&r.raR>1.2).length;
-  return `<div class="strip"><div class="m"><div class="v">${fM(tV)}</div><div class="l">Venta red</div></div><div class="m"><div class="v">${pV?fM(pV):'—'}</div><div class="l">Obj. personal</div></div><div class="m"><div class="v">${rV!==null?rV.toFixed(2):'—'} ${dot(rV)}</div><div class="l">Ratio venta</div></div><div class="dv"></div><div class="m"><div class="v">${fM(tR)}</div><div class="l">Recaud. (11 suc.)</div></div><div class="m"><div class="v">${pR?fM(pR):'—'}</div><div class="l">Obj. personal</div></div><div class="m"><div class="v">${rR!==null?rR.toFixed(2):'—'} ${dot(rR)}</div><div class="l">Ratio recaud.</div></div><div class="dv"></div><div class="m"><div class="v" style="color:var(--red)">${rv}</div><div class="l">Rojas vta</div></div><div class="m"><div class="v" style="color:var(--red)">${rr}</div><div class="l">Rojas rec</div></div></div>`;
+  return `<div class="strip"><div class="m"><div class="v">${fM(tV)}</div><div class="l">Venta red</div></div><div class="m"><div class="v">${pV?fM(pV):'—'}</div><div class="l">Obj. personal</div></div><div class="m"><div class="v">${rV!==null?rV.toFixed(2):'—'} ${dot(rV)}</div><div class="l">Ratio venta</div></div><div class="dv"></div><div class="m"><div class="v">${fM(tR)}</div><div class="lbl" style="font-size:10px;font-family:var(--mono);color:var(--muted)">Recaud. (19 suc.)</div></div><div class="m"><div class="v">${pR?fM(pR):'—'}</div><div class="l">Obj. personal</div></div><div class="m"><div class="v">${rR!==null?rR.toFixed(2):'—'} ${dot(rR)}</div><div class="l">Ratio recaud.</div></div><div class="dv"></div><div class="m"><div class="v" style="color:var(--red)">${rv}</div><div class="l">Rojas vta</div></div><div class="m"><div class="v" style="color:var(--red)">${rr}</div><div class="l">Rojas rec</div></div></div>`;
 }
 
 function buildRanking(lista,tipo,conTend){
@@ -392,9 +392,8 @@ function buildRanking(lista,tipo,conTend){
   lista.forEach((r,i)=>{
     const re=iV?r.vR:r.rR,ob=iV?r.oV:r.oR,p=iV?r.pV:r.pR,pr=iV?r.prV:r.prR,ra=iV?r.raV:r.raR;
     const mt=(!iV&&r.iM)?'<span class="tag-mail">+mail</span>':'';
-    const sv=(!iV&&!r.hR)?'<span class="tag-sv">solo vta</span>':'';
     const tend=conTend&&iV&&r.tV!==null?(r.tV>=0?`<span class="tu">▲${(r.tV*100).toFixed(0)}%</span>`:`<span class="td2">▼${(Math.abs(r.tV)*100).toFixed(0)}%</span>`):'';
-    h+=`<tr class="${sc(ra)}"><td>${i+1}</td><td>${r.nom.replace('PP ','')}${mt}${sv}</td><td>${f(re)}</td><td>${ob?f(ob):'—'}</td><td>${p!==null?(p*100).toFixed(1)+'%':'—'}</td><td>${pr!==null?f(pr):'—'}</td>${conTend?`<td>${tend||'—'}</td>`:''}<td><strong>${ra!==null?ra.toFixed(2):'—'}</strong></td><td>${sd(ra)}</td></tr>`;
+    h+=`<tr class="${sc(ra)}"><td>${i+1}</td><td>${r.nom.replace('PP ','')}${mt}</td><td>${f(re)}</td><td>${ob?f(ob):'—'}</td><td>${p!==null?(p*100).toFixed(1)+'%':'—'}</td><td>${pr!==null?f(pr):'—'}</td>${conTend?`<td>${tend||'—'}</td>`:''}<td><strong>${ra!==null?ra.toFixed(2):'—'}</strong></td><td>${sd(ra)}</td></tr>`;
   });
   return h+'</tbody>';
 }
@@ -442,5 +441,4 @@ function pdf(tablaId,titulo){
   try{const s=localStorage.getItem('ofc_obj');if(s){OBJ=JSON.parse(s);showObjOk();if(OBJ.dh){document.getElementById('dh').value=OBJ.dh;calcR();}enableNav(['xls']);updSt();}}catch(e){}
 })();
 </script>
-</body>
-</html>
+</
