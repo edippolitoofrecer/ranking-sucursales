@@ -107,7 +107,7 @@ input[readonly]{background:#eee;color:var(--muted);}
   <div class="nav-item" id="nav-dias" onclick="go('dias')"><div class="dot"></div>Días y recaud. mail</div>
   <div class="nav-section">INFORMES</div>
   <div class="nav-item disabled" id="nav-diario" onclick="go('diario')"><div class="dot"></div>Ranking diario</div>
-  <div class="nav-item disabled" id="nav-semanal" onclick="go('semanal')"><div class="dot"></div>Análisis semanal</div>
+  
   <div class="nav-item disabled" id="nav-tendencias" onclick="go('tendencias')"><div class="dot"></div>Tendencias</div>
 </div>
 <div class="content">
@@ -200,23 +200,6 @@ input[readonly]{background:#eee;color:var(--muted);}
     <button class="btn btn-primary" onclick="pdf('tvd','Ranking Diario — Ventas')">↓ PDF Ventas</button>
     <button class="btn btn-primary" onclick="pdf('trd','Ranking Diario — Recaudación')">↓ PDF Recaudación</button>
     <span class="info-msg">Se abren en nueva pestaña listos para imprimir</span>
-  </div>
-</div>
-
-<!-- SEMANAL -->
-<div id="panel-semanal" class="panel">
-  <div class="page-title">Análisis semanal</div>
-  <div class="page-sub" id="sub-s"></div>
-  <div id="strip-s"></div>
-  <div class="tabs no-print">
-    <button class="tab active" onclick="showTab('tv-s','ts',this)">Ventas</button>
-    <button class="tab" onclick="showTab('tr-s','ts',this)">Recaudación (11 suc.)</button>
-  </div>
-  <div id="tv-s" class="tp active"><div class="legend" style="margin-top:10px"><span><i class="sem sv2"></i> &lt;1.0</span><span><i class="sem sa2"></i> 1.0–1.2</span><span><i class="sem sr2"></i> &gt;1.2</span><span style="color:var(--faint);font-size:11px">· "vs Abr" = variación respecto a abril</span></div><table class="rt" id="tvs"></table></div>
-  <div id="tr-s" class="tp"><div class="legend" style="margin-top:10px"><span><i class="sem sv2"></i> &lt;1.0</span><span><i class="sem sa2"></i> 1.0–1.2</span><span><i class="sem sr2"></i> &gt;1.2</span></div><table class="rt" id="trs"></table></div>
-  <div class="btn-row no-print">
-    <button class="btn btn-primary" onclick="pdf('tvs','Análisis Semanal — Ventas')">↓ PDF Ventas</button>
-    <button class="btn btn-primary" onclick="pdf('trs','Análisis Semanal — Recaudación')">↓ PDF Recaudación</button>
   </div>
 </div>
 
@@ -368,7 +351,7 @@ function confirmarDias(){
   DT=parseFloat(document.getElementById('dt').value)||1;
   DR=parseFloat(document.getElementById('dr').value)||1;
   calcTodo();LISTO=true;updSt();
-  enableNav(['diario','semanal','tendencias']);go('diario');
+  enableNav(['diario','tendencias']);go('diario');
 }
 
 // CALCULAR
@@ -389,10 +372,10 @@ function calcTodo(){
     const tV=vA>0?((vR-vA)/vA):null;
     return{nom,vR,rR,oV,oR,raV,raR,pV,pR,prV,prR,iM,hR,tV};
   });
-  renderD();renderS();
+  renderD();
   const ds=`Días hábiles: ${DH} · Transcurridos: ${DT} · Restantes: ${DR}`;
   document.getElementById('sub-d').textContent=ds;
-  document.getElementById('sub-s').textContent=ds;
+  
 }
 
 function buildStrip(){
@@ -422,13 +405,6 @@ function renderD(){
   const bR=[...RES].filter(r=>r.raR!==null).sort((a,b)=>a.raR-b.raR);
   document.getElementById('tvd').innerHTML=buildRanking(bV,'v',false);
   document.getElementById('trd').innerHTML=buildRanking(bR,'r',false);
-}
-function renderS(){
-  document.getElementById('strip-s').innerHTML=buildStrip();
-  const bV=[...RES].filter(r=>r.raV!==null).sort((a,b)=>a.raV-b.raV);
-  const bR=[...RES].filter(r=>r.raR!==null).sort((a,b)=>a.raR-b.raR);
-  document.getElementById('tvs').innerHTML=buildRanking(bV,'v',true);
-  document.getElementById('trs').innerHTML=buildRanking(bR,'r',true);
 }
 
 function renderT(){
