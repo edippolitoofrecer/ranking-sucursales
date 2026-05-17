@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ranking Sucursales — Ofrecer S.A.</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f4f0; --surface: #ffffff; --border: #e2e0d8; --border-strong: #c8c6bc;
+    --text: #1a1a18; --muted: #6b6a65; --faint: #9b9a95;
+    --green: #2d6a2d; --green-bg: #e8f4e8;
+    --yellow: #7a5c00; --yellow-bg: #fff8e0;
+    --red: #a32020; --red-bg: #fdeaea;
+    --accent: #1a3a5c; --accent-light: #e8f0f8;
+    --mono: 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, 'Times New Roman', serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  header { background: var(--accent); color: #fff; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; font-weight: normal; letter-spacing: .04em; }
+  header .hr { font-size: 11px; opacity: .6; font-family: var(--mono); text-align: right; line-height: 1.7; }
+  .main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+  .steps { display: flex; gap: 0; margin-bottom: 28px; border-bottom: 2px solid var(--border-strong); }
+  .step-btn { padding: 10px 22px; border: none; background: transparent; font-family: Georgia, serif; font-size: 13px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+  .step-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; }
+  .step-btn:disabled { opacity: .35; cursor: default; }
+  .panel { display: none; } .panel.active { display: block; }
+  .card { background: var(--surface); border: 1px solid var(--border); padding: 22px 26px; margin-bottom: 14px; }
+  .card h2 { font-size: 11px; font-weight: bold; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; font-family: var(--mono); }
+  .upload-zone { border: 2px dashed var(--border-strong); padding: 32px; text-align: center; cursor: pointer; transition: all .2s; }
+  .upload-zone:hover { border-color: var(--accent); background: var(--accent-light); }
+  .upload-zone .icon { font-size: 28px; color: var(--faint); margin-bottom: 8px; }
+  .upload-zone p { color: var(--muted); font-size: 13px; }
+  .upload-zone p.sub { font-size: 11px; font-family: var(--mono); margin-top: 4px; color: var(--faint); }
+  .upload-zone.loaded { border-color: var(--green); background: var(--green-bg); border-style: solid; }
+  .upload-zone.loaded p { color: var(--green); font-weight: bold; }
+  .obj-badge { display: inline-flex; align-items: center; gap: 10px; background: var(--green-bg); border: 1px solid #a8d4a8; padding: 10px 16px; font-size: 12px; font-family: var(--mono); color: var(--green); margin-bottom: 14px; }
+  .obj-badge button { background: none; border: 1px solid #a8d4a8; color: var(--green); cursor: pointer; font-size: 11px; padding: 2px 8px; font-family: var(--mono); }
+  .dias-card { background: var(--accent-light); border: 1px solid #b0c8e0; padding: 20px 24px; margin-bottom: 14px; }
+  .dias-card h2 { font-size: 11px; font-weight: bold; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; font-family: var(--mono); }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  label { display: block; font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 5px; letter-spacing: .05em; }
+  input[type=number] { width: 100%; border: 1px solid var(--border-strong); padding: 8px 10px; font-size: 14px; font-family: Georgia, serif; background: var(--bg); color: var(--text); }
+  input[type=number]:focus { outline: 2px solid var(--accent); outline-offset: 1px; background: #fff; }
+  input[readonly] { background: #eee; color: var(--muted); }
+  .suc-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .suc-table th { font-size: 10px; font-family: var(--mono); letter-spacing: .06em; color: var(--muted); padding: 7px 10px; border-bottom: 2px solid var(--border-strong); text-align: right; }
+  .suc-table th:first-child { text-align: left; }
+  .suc-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .suc-table td:not(:first-child) { font-family: var(--mono); font-size: 11px; text-align: right; }
+  .tag-mail { font-size: 9px; font-family: var(--mono); background: var(--yellow-bg); color: var(--yellow); padding: 1px 5px; border: 1px solid #e8d070; margin-left: 5px; vertical-align: middle; }
+  .rec-mail-input { width: 130px; border: 1px solid #e8d070; padding: 5px 7px; font-family: var(--mono); font-size: 11px; text-align: right; background: var(--yellow-bg); }
+  .rec-mail-input:focus { outline: 1px solid var(--yellow); background: #fff; }
+  .btn { padding: 10px 26px; font-family: Georgia, serif; font-size: 14px; cursor: pointer; border: none; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #142d47; }
+  .btn-secondary { background: var(--surface); color: var(--accent); border: 1px solid var(--accent); }
+  .btn-secondary:hover { background: var(--accent-light); }
+  .btn-sm { padding: 6px 14px; font-size: 12px; }
+  .semaforo { display: inline-block; width: 9px; height: 9px; border-radius: 50%; vertical-align: middle; }
+  .sem-verde { background: #2d6a2d; } .sem-amarillo { background: #c8950a; } .sem-rojo { background: #a32020; }
+  .tabs-mini { display: flex; border-bottom: 2px solid var(--border-strong); margin-bottom: 0; }
+  .tab-mini { padding: 8px 22px; font-size: 13px; font-family: Georgia, serif; cursor: pointer; border: none; background: transparent; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .tab-mini.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; }
+  .panel-mini { display: none; padding-top: 14px; } .panel-mini.active { display: block; }
+  .ranking-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ranking-table th { font-size: 10px; font-family: var(--mono); letter-spacing: .06em; color: var(--muted); padding: 7px 10px; border-bottom: 2px solid var(--border-strong); text-align: right; white-space: nowrap; }
+  .ranking-table th:first-child, .ranking-table th:nth-child(2) { text-align: left; }
+  .ranking-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: right; font-family: var(--mono); font-size: 11px; }
+  .ranking-table td:first-child { text-align: center; color: var(--muted); font-size: 10px; width: 28px; }
+  .ranking-table td:nth-child(2) { text-align: left; font-family: Georgia, serif; font-size: 12px; }
+  .ranking-table tr.sem-verde-row { background: var(--green-bg); }
+  .ranking-table tr.sem-amarillo-row { background: var(--yellow-bg); }
+  .ranking-table tr.sem-rojo-row { background: var(--red-bg); }
+  .personal-card { background: var(--accent-light); border: 1px solid #b0c8e0; padding: 16px 20px; display: flex; gap: 28px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .personal-card .metric { text-align: center; }
+  .personal-card .metric .val { font-size: 17px; font-family: var(--mono); font-weight: bold; color: var(--accent); }
+  .personal-card .metric .lbl { font-size: 10px; font-family: var(--mono); color: var(--muted); letter-spacing: .06em; margin-top: 2px; }
+  .dv { width: 1px; background: #b0c8e0; align-self: stretch; }
+  .legend { display: flex; gap: 18px; font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 10px; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .actions-row { display: flex; gap: 10px; margin-top: 18px; align-items: center; flex-wrap: wrap; }
+  .info-msg { font-size: 11px; font-family: var(--mono); color: var(--muted); }
+  @media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ranking Sucursales &mdash; Ofrecer S.A.</h1>
+  <div class="hr"><span id="hdr-fecha"></span><br><span id="hdr-obj"></span></div>
+</header>
+<div class="main">
+  <div class="steps no-print">
+    <button class="step-btn active" onclick="goStep(1)" id="btn-step1">1. Objetivos del mes</button>
+    <button class="step-btn" onclick="goStep(2)" id="btn-step2" disabled>2. XLS del día</button>
+    <button class="step-btn" onclick="goStep(3)" id="btn-step3" disabled>3. Días y mail</button>
+    <button class="step-btn" onclick="goStep(4)" id="btn-step4" disabled>4. Ranking</button>
+  </div>
+
+  <!-- PASO 1 -->
+  <div id="step1" class="panel active">
+    <div id="obj-banner" style="display:none">
+      <div class="obj-badge">
+        <span>✓ Objetivos cargados: <strong id="obj-label"></strong></span>
+        <button onclick="clearObj()">Reemplazar</button>
+      </div>
+    </div>
+    <div id="obj-upload-area">
+      <div class="card">
+        <h2>Cargar XLS de objetivos del mes</h2>
+        <div class="upload-zone" onclick="document.getElementById('file-obj').click()">
+          <div class="icon">📋</div>
+          <p>Seleccioná el XLS de objetivos</p>
+          <p class="sub">Objetivos_Mayo_2026.xlsx — se guarda hasta que lo reemplaces</p>
+        </div>
+        <input type="file" id="file-obj" accept=".xls,.xlsx" style="display:none" onchange="loadObj(this)">
+        <div id="obj-status" style="margin-top:10px;font-size:12px;font-family:var(--mono);color:var(--muted)"></div>
+      </div>
+    </div>
+    <div id="obj-preview" style="display:none">
+      <div class="card">
+        <h2>Verificación de objetivos</h2>
+        <table class="suc-table">
+          <thead><tr><th>Sucursal</th><th>Obj. Ventas</th><th>Obj. Recaudación</th></tr></thead>
+          <tbody id="obj-tbody"></tbody>
+        </table>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-family:var(--mono);font-size:12px;">
+          <div><span style="color:var(--muted);font-size:10px;display:block;margin-bottom:3px">OBJ. PERSONAL VENTAS</span><strong id="pv-preview"></strong></div>
+          <div><span style="color:var(--muted);font-size:10px;display:block;margin-bottom:3px">OBJ. PERSONAL RECAUD.</span><strong id="pr-preview"></strong></div>
+          <div><span style="color:var(--muted);font-size:10px;display:block;margin-bottom:3px">DÍAS HÁBILES DEL MES</span><strong id="dh-preview"></strong></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="confirmarObj()">Confirmar y continuar →</button>
+    </div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div id="step2" class="panel">
+    <div class="card">
+      <h2>Archivo XLS del día</h2>
+      <div class="upload-zone" id="zone-xls" onclick="document.getElementById('file-xls').click()">
+        <div class="icon">📊</div>
+        <p>Seleccioná el XLS de venta y recaudación del día</p>
+        <p class="sub">VENTA_Y_RECAUDACION.xls</p>
+      </div>
+      <input type="file" id="file-xls" accept=".xls,.xlsx" style="display:none" onchange="loadXLS(this)">
+      <div id="xls-status" style="margin-top:10px;font-size:12px;font-family:var(--mono);color:var(--muted)"></div>
+    </div>
+  </div>
+
+  <!-- PASO 3 -->
+  <div id="step3" class="panel">
+    <div class="dias-card">
+      <h2>Parámetros del día</h2>
+      <div class="grid-3">
+        <div>
+          <label>DÍAS HÁBILES DEL MES</label>
+          <input type="number" id="dias-h" min="1" max="31" step="0.5" placeholder="ej: 22" oninput="updateR()">
+        </div>
+        <div>
+          <label>DÍAS TRANSCURRIDOS</label>
+          <input type="number" id="dias-t" min="1" max="31" step="0.5" placeholder="ej: 12" oninput="updateR()">
+        </div>
+        <div>
+          <label>DÍAS RESTANTES</label>
+          <input type="number" id="dias-r" readonly>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Recaudación extra por mail <span class="tag-mail">+MAIL</span></h2>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;font-family:var(--mono)">Ingresá los valores del HTML del mail para las sucursales GBA / La Plata</p>
+      <table class="suc-table">
+        <thead><tr><th>Sucursal</th><th>Rec. XLS (Rec 2)</th><th>Rec. extra mail</th><th>Total recaudación</th></tr></thead>
+        <tbody id="mail-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-primary" onclick="calcular()">Calcular ranking →</button>
+  </div>
+
+  <!-- PASO 4 -->
+  <div id="step4" class="panel">
+    <div id="personal-summary"></div>
+    <div class="tabs-mini no-print">
+      <button class="tab-mini active" onclick="showTab('ventas',event)">Ranking Ventas</button>
+      <button class="tab-mini" onclick="showTab('rec',event)">Ranking Recaudación</button>
+    </div>
+    <div id="panel-ventas" class="panel-mini active">
+      <div class="legend"><span><i class="semaforo sem-verde"></i> ratio &lt; 1.0</span><span><i class="semaforo sem-amarillo"></i> 1.0 – 1.2</span><span><i class="semaforo sem-rojo"></i> &gt; 1.2</span></div>
+      <table class="ranking-table" id="tabla-ventas"></table>
+    </div>
+    <div id="panel-rec" class="panel-mini">
+      <div class="legend"><span><i class="semaforo sem-verde"></i> ratio &lt; 1.0</span><span><i class="semaforo sem-amarillo"></i> 1.0 – 1.2</span><span><i class="semaforo sem-rojo"></i> &gt; 1.2</span></div>
+      <table class="ranking-table" id="tabla-rec"></table>
+    </div>
+    <div class="actions-row no-print">
+      <button class="btn btn-primary" onclick="exportPDF('ventas')">↓ PDF Ventas</button>
+      <button class="btn btn-primary" onclick="exportPDF('rec')">↓ PDF Recaudación</button>
+      <button class="btn btn-secondary btn-sm" onclick="goStep(3)">← Cambiar días</button>
+      <button class="btn btn-secondary btn-sm" onclick="goStep(2)">← Nuevo XLS</button>
+      <span class="info-msg">PDFs se abren en nueva pestaña listos para imprimir</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const MAIL_SUBS = ['La Plata Calle 12','Quilmes','Lomas de Zamora','San Justo','Merlo','San Miguel','Escobar','Pilar'];
+const NAME_MAP = {
+  'bolívar':'PP BOLIVAR','bolivar':'PP BOLIVAR',
+  'cañuelas':'PP CAÑUELAS','canuelas':'PP CAÑUELAS',
+  'caucete':'PP CAUCETE',
+  'gral rodríguez':'PP GRAL. RODRIGUEZ','gral rodriguez':'PP GRAL. RODRIGUEZ',
+  'chascomús':'PP CHASCOMUS','chascomus':'PP CHASCOMUS',
+  'luján':'PP LUJAN','lujan':'PP LUJAN',
+  'zárate':'PP ZARATE','zarate':'PP ZARATE',
+  'olavarría':'PP OLAVARRIA','olavarria':'PP OLAVARRIA',
+  'bahía blanca':'PP BAHIA BLANCA','bahia blanca':'PP BAHIA BLANCA',
+  'tucumán':'PP TUCUMAN','tucuman':'PP TUCUMAN',
+  'catamarca':'PP CATAMARCA',
+  'la plata calle 12':'PP LA PLATA CALLE 12',
+  'quilmes':'PP QUILMES',
+  'lomas de zamora':'PP LOMAS DE ZAMORA',
+  'san justo':'PP SAN JUSTO',
+  'merlo':'PP MERLO',
+  'san miguel':'PP SAN MIGUEL',
+  'escobar':'PP ESCOBAR',
+  'pilar':'PP PILAR'
+};
+
+let objetivos = null, xlsData = [];
+
+document.getElementById('hdr-fecha').textContent = new Date().toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+function toKey(n) { return String(n).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function mapName(n) { const k = toKey(n); return NAME_MAP[k] || ('PP '+n.toUpperCase()); }
+function fmt(n) { if(n===null||n===undefined||isNaN(n))return'—'; return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n); }
+function updateR() {
+  const h=parseFloat(document.getElementById('dias-h').value)||0;
+  const t=parseFloat(document.getElementById('dias-t').value)||0;
+  document.getElementById('dias-r').value=Math.max(0,h-t).toFixed(1).replace(/\.0$/,'');
+}
+function goStep(n) {
+  [1,2,3,4].forEach(i=>{
+    document.getElementById('step'+i).classList.toggle('active',i===n);
+    document.getElementById('btn-step'+i).classList.toggle('active',i===n);
+  });
+}
+function showTab(t,e) {
+  document.querySelectorAll('.tab-mini').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel-mini').forEach(x=>x.classList.remove('active'));
+  document.getElementById('panel-'+t).classList.add('active');
+  if(e&&e.target)e.target.classList.add('active');
+}
+
+// OBJETIVOS
+function loadObj(input) {
+  const file=input.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try {
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      parseObj(raw,file.name);
+    } catch(err){ document.getElementById('obj-status').textContent='Error: '+err.message; }
+  };
+  r.readAsArrayBuffer(file);
+}
+function parseObj(raw,fname) {
+  const obj={sucursales:{},personalVta:0,personalRec:0,diasHabiles:0,filename:fname};
+  let i=0;
+  while(i<raw.length && toKey(String(raw[i][0]))!=='sucursal') i++;
+  i++;
+  while(i<raw.length) {
+    const row=raw[i]; const nombre=String(row[0]||'').trim();
+    if(!nombre){i++;continue;}
+    const kn=toKey(nombre);
+    if(kn.includes('total')){i++;continue;}
+    if(kn.includes('objetivos personal')){
+      const pr=raw[i+1]||[];
+      obj.personalVta=parseFloat(pr[1])||0;
+      obj.personalRec=parseFloat(pr[2])||0;
+      i+=2;continue;
+    }
+    if(kn.includes('días hábiles')||kn.includes('dias habiles')){
+      obj.diasHabiles=parseFloat(row[1])||0; i++;continue;
+    }
+    const vta=parseFloat(row[1])||0, rec=parseFloat(row[2])||0;
+    if(vta>0||rec>0) obj.sucursales[nombre]={vta,rec};
+    i++;
+  }
+  objetivos=obj;
+  const tbody=document.getElementById('obj-tbody');
+  tbody.innerHTML='';
+  Object.entries(obj.sucursales).forEach(([n,v])=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${n}</td><td>${fmt(v.vta)}</td><td>${fmt(v.rec)}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('pv-preview').textContent=fmt(obj.personalVta);
+  document.getElementById('pr-preview').textContent=fmt(obj.personalRec);
+  document.getElementById('dh-preview').textContent=obj.diasHabiles||'—';
+  document.getElementById('obj-preview').style.display='block';
+  document.getElementById('obj-status').textContent=`✓ ${Object.keys(obj.sucursales).length} sucursales detectadas`;
+}
+function confirmarObj() {
+  try{localStorage.setItem('ofrecer_obj',JSON.stringify(objetivos));}catch(e){}
+  showObjCargado();
+  if(objetivos.diasHabiles){ document.getElementById('dias-h').value=objetivos.diasHabiles; updateR(); }
+  document.getElementById('btn-step2').disabled=false;
+  goStep(2);
+}
+function showObjCargado() {
+  document.getElementById('obj-upload-area').style.display='none';
+  document.getElementById('obj-preview').style.display='none';
+  document.getElementById('obj-banner').style.display='block';
+  document.getElementById('obj-label').textContent=objetivos.filename||'objetivos cargados';
+  document.getElementById('hdr-obj').textContent=objetivos.filename||'';
+}
+function clearObj() {
+  objetivos=null;
+  try{localStorage.removeItem('ofrecer_obj');}catch(e){}
+  document.getElementById('obj-upload-area').style.display='block';
+  document.getElementById('obj-preview').style.display='none';
+  document.getElementById('obj-banner').style.display='none';
+  document.getElementById('obj-status').textContent='';
+  document.getElementById('file-obj').value='';
+  ['btn-step2','btn-step3','btn-step4'].forEach(id=>document.getElementById(id).disabled=true);
+  goStep(1);
+}
+
+// XLS DEL DÍA
+function loadXLS(input) {
+  const file=input.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try {
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      parseXLS(raw);
+    } catch(err){ document.getElementById('xls-status').textContent='Error: '+err.message; }
+  };
+  r.readAsArrayBuffer(file);
+}
+function parseXLS(raw) {
+  xlsData=[];
+  let hr=-1;
+  for(let i=0;i<raw.length;i++){ if(String(raw[i][0]).trim()==='Local'){hr=i;break;} }
+  if(hr===-1){document.getElementById('xls-status').textContent='No se encontró la sección de sucursales.';return;}
+  for(let i=hr+1;i<raw.length;i++){
+    const row=raw[i], nombre=String(row[0]||'').trim().toUpperCase();
+    if(!nombre||nombre.startsWith('TOTAL')||!nombre.startsWith('PP '))continue;
+    xlsData.push({nombre,monto2:parseFloat(row[8])||0,rec2:parseFloat(row[16])||0});
+  }
+  if(xlsData.length===0){document.getElementById('xls-status').textContent='No se pudieron leer sucursales.';return;}
+  const zone=document.getElementById('zone-xls');
+  zone.classList.add('loaded');
+  zone.querySelector('p').textContent=`✓ ${xlsData.length} sucursales cargadas`;
+  document.getElementById('xls-status').textContent=xlsData.map(s=>s.nombre).join(' · ');
+  buildMailInputs();
+  document.getElementById('btn-step3').disabled=false;
+  goStep(3);
+}
+function buildMailInputs() {
+  const tbody=document.getElementById('mail-tbody');
+  tbody.innerHTML='';
+  MAIL_SUBS.forEach(nombre=>{
+    const xlsKey=mapName(nombre);
+    const suc=xlsData.find(x=>x.nombre===xlsKey);
+    const rec2=suc?suc.rec2:0;
+    const safeId='tot_'+xlsKey.replace(/[^a-z0-9]/gi,'_');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${nombre}<span class="tag-mail">+MAIL</span></td>
+      <td>${fmt(rec2)}</td>
+      <td><input type="number" class="rec-mail-input" placeholder="0" data-key="${xlsKey}" data-base="${rec2}" min="0"></td>
+      <td id="${safeId}">${fmt(rec2)}</td>`;
+    tr.querySelector('input').addEventListener('input',function(){
+      const mail=parseFloat(this.value)||0;
+      document.getElementById(safeId).textContent=fmt(parseFloat(this.dataset.base)+mail);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// CALCULAR
+function calcular() {
+  const diasH=parseFloat(document.getElementById('dias-h').value)||1;
+  const diasT=parseFloat(document.getElementById('dias-t').value)||1;
+  const diasR=parseFloat(document.getElementById('dias-r').value)||1;
+  const mailVals={};
+  document.querySelectorAll('.rec-mail-input').forEach(inp=>{ mailVals[inp.dataset.key]=parseFloat(inp.value)||0; });
+
+  const resultados=Object.entries(objetivos.sucursales).map(([nombre,ov])=>{
+    const xlsKey=mapName(nombre);
+    const suc=xlsData.find(x=>x.nombre===xlsKey);
+    const vtaReal=suc?suc.monto2:0;
+    const recBase=suc?suc.rec2:0;
+    const recMail=mailVals[xlsKey]||0;
+    const recReal=recBase+recMail;
+    const objVta=ov.vta, objRec=ov.rec;
+    const ratioVta=objVta>0&&diasR>0?((objVta-vtaReal)/diasR)/(objVta/diasH):null;
+    const ratioRec=objRec>0&&diasR>0?((objRec-recReal)/diasR)/(objRec/diasH):null;
+    const pctVta=objVta>0?vtaReal/objVta:null;
+    const pctRec=objRec>0?recReal/objRec:null;
+    const proyVta=diasT>0?Math.round((vtaReal/diasT)*diasH):null;
+    const proyRec=diasT>0?Math.round((recReal/diasT)*diasH):null;
+    const isMail=MAIL_SUBS.includes(nombre);
+    return{nombre,xlsKey,vtaReal,recReal,objVta,objRec,ratioVta,ratioRec,pctVta,pctRec,proyVta,proyRec,isMail};
+  });
+
+  renderRanking(resultados);
+  renderPersonal(resultados,diasH,diasT,diasR);
+  document.getElementById('btn-step4').disabled=false;
+  goStep(4);
+}
+
+function semCls(r){if(r===null)return'';if(r<1)return'sem-verde-row';if(r<=1.2)return'sem-amarillo-row';return'sem-rojo-row';}
+function semDot(r){if(r===null)return'';if(r<1)return'<i class="semaforo sem-verde"></i>';if(r<=1.2)return'<i class="semaforo sem-amarillo"></i>';return'<i class="semaforo sem-rojo"></i>';}
+
+function renderRanking(res) {
+  function build(lista,tipo) {
+    const isV=tipo==='ventas';
+    let h=`<thead><tr><th>#</th><th>Sucursal</th><th>Realizado</th><th>Objetivo</th><th>% Cumpl.</th><th>Proyectado</th><th>Ratio</th><th></th></tr></thead><tbody>`;
+    lista.forEach((r,i)=>{
+      const real=isV?r.vtaReal:r.recReal, obj=isV?r.objVta:r.objRec;
+      const pct=isV?r.pctVta:r.pctRec, proy=isV?r.proyVta:r.proyRec, ratio=isV?r.ratioVta:r.ratioRec;
+      const tag=(!isV&&r.isMail)?'<span class="tag-mail">+mail</span>':'';
+      h+=`<tr class="${semCls(ratio)}">
+        <td>${i+1}</td><td>${r.nombre} ${tag}</td>
+        <td>${fmt(real)}</td><td>${fmt(obj)}</td>
+        <td>${pct!==null?(pct*100).toFixed(1)+'%':'—'}</td>
+        <td>${proy!==null?fmt(proy):'—'}</td>
+        <td><strong>${ratio!==null?ratio.toFixed(2):'—'}</strong></td>
+        <td>${semDot(ratio)}</td></tr>`;
+    });
+    return h+'</tbody>';
+  }
+  const bV=[...res].filter(r=>r.ratioVta!==null).sort((a,b)=>a.ratioVta-b.ratioVta);
+  const bR=[...res].filter(r=>r.ratioRec!==null).sort((a,b)=>a.ratioRec-b.ratioRec);
+  document.getElementById('tabla-ventas').innerHTML=build(bV,'ventas');
+  document.getElementById('tabla-rec').innerHTML=build(bR,'rec');
+}
+
+function renderPersonal(res,diasH,diasT,diasR) {
+  const tVta=res.reduce((a,r)=>a+r.vtaReal,0);
+  const tRec=res.reduce((a,r)=>a+r.recReal,0);
+  const oPV=objetivos.personalVta, oPR=objetivos.personalRec;
+  const rV=oPV>0&&diasR>0?((oPV-tVta)/diasR)/(oPV/diasH):null;
+  const rR=oPR>0&&diasR>0?((oPR-tRec)/diasR)/(oPR/diasH):null;
+  const dot=r=>r===null?'':r<1?'<i class="semaforo sem-verde"></i>':r<=1.2?'<i class="semaforo sem-amarillo"></i>':'<i class="semaforo sem-rojo"></i>';
+  document.getElementById('personal-summary').innerHTML=`
+    <div class="personal-card">
+      <div class="metric"><div class="val">${fmt(tVta)}</div><div class="lbl">Venta red</div></div>
+      <div class="metric"><div class="val">${fmt(oPV)}</div><div class="lbl">Obj. personal</div></div>
+      <div class="metric"><div class="val">${rV!==null?rV.toFixed(2):'—'} ${dot(rV)}</div><div class="lbl">Ratio venta</div></div>
+      <div class="dv"></div>
+      <div class="metric"><div class="val">${fmt(tRec)}</div><div class="lbl">Recaud. red</div></div>
+      <div class="metric"><div class="val">${fmt(oPR)}</div><div class="lbl">Obj. recaud.</div></div>
+      <div class="metric"><div class="val">${rR!==null?rR.toFixed(2):'—'} ${dot(rR)}</div><div class="lbl">Ratio recaud.</div></div>
+    </div>`;
+}
+
+function exportPDF(tipo) {
+  const isV=tipo==='ventas';
+  const tabla=document.getElementById('tabla-'+tipo).outerHTML;
+  const fecha=new Date().toLocaleDateString('es-AR');
+  const titulo=isV?'Ranking de Ventas':'Ranking de Recaudación';
+  const dh=document.getElementById('dias-h').value;
+  const dt=document.getElementById('dias-t').value;
+  const dr=document.getElementById('dias-r').value;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title>
+  <style>
+    body{font-family:Georgia,serif;padding:28px;color:#1a1a18;font-size:11px;}
+    h1{font-size:16px;font-weight:normal;letter-spacing:.04em;margin-bottom:3px;}
+    .meta{font-size:10px;color:#6b6a65;font-family:'Courier New',monospace;margin-bottom:5px;}
+    .params{font-size:10px;font-family:'Courier New',monospace;color:#6b6a65;margin-bottom:14px;display:flex;gap:24px;}
+    .legend{display:flex;gap:18px;font-size:10px;font-family:'Courier New',monospace;color:#6b6a65;margin-bottom:10px;}
+    .legend span{display:flex;align-items:center;gap:4px;}
+    table{width:100%;border-collapse:collapse;}
+    th{font-size:9px;font-family:'Courier New',monospace;letter-spacing:.06em;color:#6b6a65;padding:5px 8px;border-bottom:2px solid #c8c6bc;text-align:right;}
+    th:first-child,th:nth-child(2){text-align:left;}
+    td{padding:6px 8px;border-bottom:1px solid #e2e0d8;text-align:right;font-family:'Courier New',monospace;font-size:10px;}
+    td:first-child{text-align:center;color:#9b9a95;font-size:9px;width:24px;}
+    td:nth-child(2){text-align:left;font-family:Georgia,serif;font-size:11px;}
+    .sem-verde-row{background:#e8f4e8;}.sem-amarillo-row{background:#fff8e0;}.sem-rojo-row{background:#fdeaea;}
+    .semaforo{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;}
+    .sem-verde{background:#2d6a2d;}.sem-amarillo{background:#c8950a;}.sem-rojo{background:#a32020;}
+    .tag-mail{font-size:8px;font-family:'Courier New',monospace;background:#fff8e0;color:#7a5c00;padding:0 3px;border:1px solid #e8d070;}
+    @media print{@page{margin:15mm;size:A4 landscape;}}
+  </style></head><body>
+  <h1>${titulo} — Ofrecer S.A.</h1>
+  <div class="meta">Emitido: ${fecha}</div>
+  <div class="params"><span>Días hábiles: ${dh}</span><span>Días transcurridos: ${dt}</span><span>Días restantes: ${dr}</span></div>
+  <div class="legend">
+    <span><span class="semaforo sem-verde"></span> ratio &lt; 1.0 — en carril</span>
+    <span><span class="semaforo sem-amarillo"></span> ratio 1.0–1.2 — atención</span>
+    <span><span class="semaforo sem-rojo"></span> ratio &gt; 1.2 — crítico</span>
+  </div>${tabla}
+  <script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+
+// Restaurar objetivos desde localStorage
+(function(){
+  try{
+    const s=localStorage.getItem('ofrecer_obj');
+    if(s){ objetivos=JSON.parse(s); showObjCargado(); document.getElementById('btn-step2').disabled=false;
+      if(objetivos.diasHabiles){document.getElementById('dias-h').value=objetivos.diasHabiles;updateR();}
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
