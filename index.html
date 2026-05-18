@@ -176,7 +176,18 @@ input[readonly]{background:#eee;color:var(--muted);}
   </div>
   <div class="card">
     <h2>Recaudación extra por mail <span class="tag-mail">+MAIL</span></h2>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;font-family:var(--mono)">Valores del HTML del mail — 8 sucursales GBA / La Plata</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;font-family:var(--mono)">Subí una captura del reporte o ingresá los valores manualmente</p>
+
+    <!-- Upload imagen -->
+    <div id="img-upload-zone" class="upload-zone" style="margin-bottom:14px" onclick="document.getElementById('fimg').click()">
+      <div class="icon">📷</div>
+      <p>Subí la captura del reporte de cobrado</p>
+      <p class="sub">JPG, PNG — Claude lee los totales automáticamente</p>
+    </div>
+    <input type="file" id="fimg" accept="image/*" style="display:none" onchange="leerImagen(this)">
+
+    <div id="img-status" style="font-size:12px;font-family:var(--mono);color:var(--muted);margin-bottom:12px;display:none"></div>
+
     <table class="suc-table">
       <thead><tr><th>Sucursal</th><th>Rec. XLS</th><th>Rec. mail</th><th>Total</th></tr></thead>
       <tbody id="mail-tbody"></tbody>
@@ -335,6 +346,97 @@ function parseXLS(raw){
   document.getElementById('xls-st').textContent=XLS.map(s=>s.nombre).join(' · ');
   buildMail();enableNav(['dias']);updSt();go('dias');
 }
+// LEER IMAGEN CON CLAUDE
+const IMG_SUC_MAP = {
+  'Lomas':'PP LOMAS DE ZAMORA','Lomas de Zamora':'PP LOMAS DE ZAMORA',
+  'Quilmes':'PP QUILMES',
+  'La Plata':'PP LA PLATA CALLE 12','La Plata Calle 12':'PP LA PLATA CALLE 12',
+  'San Miguel':'PP SAN MIGUEL',
+  'Pilar':'PP PILAR',
+  'Escobar':'PP ESCOBAR',
+  'San Justo':'PP SAN JUSTO',
+  'Merlo':'PP MERLO'
+};
+
+async function leerImagen(input) {
+  const file = input.files[0]; if(!file) return;
+  const st = document.getElementById('img-status');
+  const zone = document.getElementById('img-upload-zone');
+  st.style.display = 'block';
+  st.textContent = '⏳ Leyendo imagen con Claude...';
+  zone.classList.add('loaded');
+  zone.querySelector('p').textContent = `✓ ${file.name}`;
+
+  try {
+    // Convertir a base64
+    const base64 = await new Promise((res,rej)=>{
+      const r = new FileReader();
+      r.onload = ()=>res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    const mediaType = file.type || 'image/jpeg';
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: mediaType, data: base64 }
+            },
+            {
+              type: 'text',
+              text: `Esta imagen muestra un reporte de cobrado con columnas por sucursal (Lomas, Quilmes, La Plata, San Miguel, Pilar, Escobar, San Justo, Merlo) y una fila "Total" al final.
+              
+Extraé SOLO los valores de la fila "Total" de cada sucursal y respondé ÚNICAMENTE con un JSON así, sin texto adicional:
+{"Lomas":14544714,"Quilmes":9949092,"La Plata":9014913,"San Miguel":17524139,"Pilar":19738473,"Escobar":15441783,"San Justo":8491245,"Merlo":5042695}
+
+Los números deben ser enteros sin puntos ni comas. Si alguna columna no existe ponela en 0.`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.find(b=>b.type==='text')?.text || '';
+
+    // Parsear JSON de la respuesta
+    const jsonMatch = text.match(/\{[^}]+\}/);
+    if (!jsonMatch) throw new Error('No se pudo leer la imagen');
+    const vals = JSON.parse(jsonMatch[0]);
+
+    // Cargar valores en los inputs
+    let cargadas = 0;
+    Object.entries(vals).forEach(([nombre, valor]) => {
+      const xlsKey = IMG_SUC_MAP[nombre];
+      if (!xlsKey) return;
+      const input = document.querySelector(`.rec-mail-input[data-key="${xlsKey}"]`);
+      if (input) {
+        input.value = valor;
+        input.dispatchEvent(new Event('input'));
+        cargadas++;
+      }
+    });
+
+    st.textContent = `✓ ${cargadas} sucursales cargadas automáticamente — verificá los valores antes de continuar`;
+    st.style.color = 'var(--green)';
+
+  } catch(err) {
+    st.textContent = `Error al leer la imagen: ${err.message} — ingresá los valores manualmente`;
+    st.style.color = 'var(--red)';
+    zone.classList.remove('loaded');
+    zone.querySelector('p').textContent = 'Subí la captura del reporte de cobrado';
+  }
+}
+
 function buildMail(){
   const tb=document.getElementById('mail-tbody');tb.innerHTML='';
   MAIL.forEach(nom=>{
