@@ -292,24 +292,45 @@ function updSt(){
 function loadObj(input){
   const file=input.files[0];if(!file)return;
   const r=new FileReader();
-  r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});parseObj(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}),file.name);}catch(err){document.getElementById('obj-st').textContent='Error: '+err.message;}};
+  r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});parseObj(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}),file.name);}catch(err){document.getElementById('obj-st').textContent='Error: '+err.message;}};
   r.readAsArrayBuffer(file);
 }
 function parseObj(raw,fname){
-  // Extraer mes del nombre del archivo ej: Objetivos_Mayo_2026.xlsx → "Mayo 2026"
-  const mesMatch = fname.match(/([A-Za-záéíóúÁÉÍÓÚüÜñÑ]+)[_\s]+(\d{4})/i);
-  const mesLabel = mesMatch ? mesMatch[1].charAt(0).toUpperCase()+mesMatch[1].slice(1).toLowerCase()+' '+mesMatch[2] : '';
-  const obj={sucursales:{},pVta:0,pRec:0,dh:0,filename:fname,mes:mesLabel};
-  let i=0;while(i<raw.length&&tk(String(raw[i][0]))!=='sucursal')i++;i++;
-  while(i<raw.length){
-    const row=raw[i],nom=String(row[0]||'').trim();if(!nom){i++;continue;}
-    const kn=tk(nom);
-    if(kn.includes('total')){i++;continue;}
-    if(kn.includes('objetivos personal')){const pr=raw[i+1]||[];obj.pVta=parseFloat(pr[1])||0;obj.pRec=parseFloat(pr[2])||0;i+=2;continue;}
-    if(kn.includes('dias habiles')||kn.includes('días hábiles')){obj.dh=parseFloat(row[1])||0;i++;continue;}
-    const vta=parseFloat(row[1])||0,rec=parseFloat(row[2])||0;
-    if(vta>0||rec>0)obj.sucursales[nom]={vta,rec};i++;
+  const obj={sucursales:{},pVta:0,pRec:0,dh:0,filename:fname,mes:''};
+  const MM=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  // MES: fila cuya col A empieza con "mes", fecha en col B (celda B2)
+  for(let r=0;r<raw.length;r++){
+    if(tk(String(raw[r][0])).startsWith('mes')){
+      const v=raw[r][1];let d=null;
+      if(v instanceof Date)d=v;
+      else if(typeof v==='number')d=new Date(Math.round((v-25569)*86400*1000));
+      else if(v){const p=new Date(v);if(!isNaN(p))d=p;}
+      if(d&&!isNaN(d))obj.mes=MM[d.getMonth()]+' '+d.getFullYear();
+      break;
+    }
   }
+  // fallback: si no encontró el mes en el Excel, lo saca del nombre del archivo
+  if(!obj.mes){const mm=fname.match(/([A-Za-záéíóúÁÉÍÓÚüÜñÑ]+)[_\s]+(\d{4})/i);if(mm)obj.mes=mm[1].charAt(0).toUpperCase()+mm[1].slice(1).toLowerCase()+' '+mm[2];}
+
+  // SUCURSALES: desde la fila siguiente a "Sucursal" hasta TOTAL / OBJETIVO PERSONAL
+  let i=0;while(i<raw.length&&tk(String(raw[i][0]))!=='sucursal')i++;i++;
+  for(;i<raw.length;i++){
+    const row=raw[i]||[],nom=String(row[0]||'').trim(),kn=tk(nom);
+    if(!nom)continue;
+    if(kn.includes('total'))continue;
+    if(kn.includes('objetivo personal'))break;
+    const vta=parseFloat(row[1])||0,rec=parseFloat(row[2])||0;
+    if(vta>0||rec>0)obj.sucursales[nom]={vta,rec};
+  }
+
+  // OBJETIVO PERSONAL: filas "Venta personal" / "Recaudación personal", valor en col B
+  for(let r=0;r<raw.length;r++){
+    const kn=tk(String(raw[r][0]||''));
+    if(kn.includes('venta personal'))obj.pVta=parseFloat(raw[r][1])||0;
+    if(kn.includes('recaudacion personal'))obj.pRec=parseFloat(raw[r][1])||0;
+  }
+
   OBJ=obj;
   fillTbody('obj-prev-tbody',obj);
   document.getElementById('ppv').textContent=f(obj.pVta);
@@ -317,6 +338,7 @@ function parseObj(raw,fname){
   document.getElementById('pdh').textContent=obj.dh||'—';
   document.getElementById('obj-prev').style.display='block';
   document.getElementById('obj-st').textContent=`✓ ${Object.keys(obj.sucursales).length} sucursales`;
+}
 }
 function fillTbody(id,obj){
   const tb=document.getElementById(id);tb.innerHTML='';
